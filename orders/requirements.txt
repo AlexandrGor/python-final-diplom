@@ -1,0 +1,6 @@
+django
+django-filter
+djangorestframework
+django-rest-passwordreset
+psycopg2-binary
+gunicorn

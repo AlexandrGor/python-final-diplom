@@ -1,0 +1,6 @@
+. /home/alexandr/virtual_envs/env-diplom/bin/activate
+или
+source ~/virtual_envs/env-diplom/bin/activate
+pip freeze | grep -v 'pkg_resources' | grep -v 'cffi' | grep -v 'pysqlite3' > requirements.txt
+. env.sh
+docker-compose up -d

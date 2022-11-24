@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+    db:
+        container_name: diplom_db
+        image: postgres:13-alpine
+        restart: unless-stopped
+        volumes:
+            - ./data/db/:/var/lib/postgresql/data/
+        expose:
+            - 5432
+        env_file:
+            - .env
+
+    migrate:
+        container_name: diplom_migrate
+        build: .
+        command: >
+          sh -c "python /app/manage.py makemigrations --noinput &&
+                 python /app/manage.py migrate --noinput"        
+        volumes: 
+            - .:/app
+        depends_on:
+            - db
+        env_file:
+            - .env
+        
+    django:
+        container_name: diplom_django
+        restart: unless-stopped
+        build: .
+        command: sh -c "gunicorn --bind 0.0.0.0:8000 orders.wsgi"
+        volumes: 
+            - .:/app
+            - static_data:/app/static
+        depends_on:
+            - migrate
+        expose: 
+            - 8000        
+        environment:
+            - DEBUG='false'
+        env_file:
+            - .env 
+
+    nginx:
+        container_name: diplom_nginx
+        image: nginx:1.19.8-alpine
+        restart: unless-stopped
+        depends_on:
+            - django
+        ports:
+            - "80:80"
+        volumes: 
+            - static_data:/var/www/html/static
+            - ./nginx-conf.conf:/etc/nginx/conf.d/default.conf
+volumes:
+    static_data:
