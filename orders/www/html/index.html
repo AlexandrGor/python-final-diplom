@@ -1,0 +1,9 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+   <div class="list-group container text-center">
+          <a href="{% url 'login' %}" class="list-group-item list-group-item-action active">Вход</a>
+          <a href="{% url 'admin:index' %}" class="list-group-item list-group-item-action">Django админка</a>
+          <a href="{% url 'logout' %}" class="list-group-item list-group-item-action active">Выход</a>
+   </div>
+{% endblock %}

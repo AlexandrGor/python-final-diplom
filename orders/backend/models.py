@@ -4,6 +4,11 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_rest_passwordreset.tokens import get_token_generator
+from datetime import datetime, timedelta
+from django.conf import settings
+import hashlib
+import os
+import jwt
 
 STATE_CHOICES = (
     ('basket', 'Статус корзины'),
@@ -29,71 +34,112 @@ class UserManager(BaseUserManager):
     """
     use_in_migrations = True
 
-    def _create_user(self, email, password, **extra_fields):
+    def create_user(self, email, password, **extra_fields):
         """
-        Create and save a user with the given username, email, and password.
+        Create and save a User with the given email and password.
         """
         if not email:
-            raise ValueError('The given email must be set')
+            raise ValueError(_('The Email must be set'))
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_user(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
-
     def create_superuser(self, email, password, **extra_fields):
+        """
+        Create and save a SuperUser with the given email and password.
+        """
+        if password is None:
+            raise TypeError('Superusers must have a password.')
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
 
-        return self._create_user(email, password, **extra_fields)
+        return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
     """
     Стандартная модель пользователей
     """
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
-    USERNAME_FIELD = 'email'
-    email = models.EmailField(_('email address'), unique=True)
-    company = models.CharField(verbose_name='Компания', max_length=40, blank=True)
-    position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
-    username_validator = UnicodeUsernameValidator()
-    username = models.CharField(
-        _('username'),
-        max_length=150,
-        help_text=_('Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
-        validators=[username_validator],
-        error_messages={
-            'unique': _("A user with that username already exists."),
-        },
-    )
-    is_active = models.BooleanField(
-        _('active'),
-        default=False,
-        help_text=_(
-            'Designates whether this user should be treated as active. '
-            'Unselect this instead of deleting accounts.'
-        ),
-    )
-    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    username = None
+    email = models.EmailField(_('email address'), db_index=True, max_length=255, unique=True)
+    first_name = models.CharField(_('first name'), max_length=30, blank=True)
+    last_name = models.CharField(_('last name'), max_length=150, blank=True)
+    middle_name = models.CharField(_('middle name'), max_length=150, blank=True)
+    company = models.CharField(_('company'), max_length=40, blank=True)
+    position = models.CharField(_('position'), max_length=40, blank=True)
+    type = models.CharField(_('type of user'), choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    # Временная метка создания объекта.
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Временная метка показывающая время последнего обновления объекта.
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        """ Строковое представление модели (отображается в консоли) """
+        return f'{self.email}'
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = "Список пользователей"
         ordering = ('email',)
+
+    @property
+    def token(self):
+        """
+        Позволяет получить токен пользователя путем вызова user.token, вместо
+        user._generate_jwt_token(). Декоратор @property выше делает это
+        возможным.
+        """
+        return self._generate_jwt_token()
+
+    @property
+    def token_password_reset(self):
+        return self._generate_jwt_token_password_reset()
+
+    def get_full_name(self):
+        """
+        Этот метод требуется Django для таких вещей, как обработка электронной
+        почты.
+        """
+        full_name = '%s %s %s' % (self.last_name, self.first_name, self.first_name)
+        return full_name.strip()
+
+    def _generate_jwt_token(self):
+        """
+        Генерирует веб-токен JSON, в котором хранится идентификатор этого
+        пользователя, срок действия токена составляет 1 час от создания
+        """
+        dt = datetime.now() + timedelta(hours=1)
+
+        token = jwt.encode({
+            'id': self.pk,
+            'exp': int(dt.strftime('%s'))
+        }, settings.SECRET_KEY, algorithm='HS256')
+
+        return token #.decode('utf-8') для str не нужен
+
+    def _generate_jwt_token_password_reset(self):
+        """
+        Генерирует веб-токен JSON, в котором хранится идентификатор этого
+        пользователя + 'reset' , срок действия токена составляет 1 час от создания
+        """
+        dt = datetime.now() + timedelta(hours=1)
+
+        token = jwt.encode({
+            'id': str(self.pk)+'reset',
+            'exp': int(dt.strftime('%s'))
+        }, settings.SECRET_KEY, algorithm='HS256')
+
+        return token #.decode('utf-8') для str не нужен
 
 class Contact(models.Model):
     user = models.ForeignKey(User, verbose_name='Пользователь',
@@ -153,9 +199,9 @@ class ConfirmEmailToken(models.Model):
         return "Password reset token for user {user}".format(user=self.user)
 
 class Shop(models.Model):
-    name = models.CharField(max_length=50, verbose_name='Название', unique=True)
+    name = models.CharField(max_length=50, verbose_name='Название', unique=True) #unique, чтобы сущетсвующий бренд был закреплен только за одним пользователем
     url = models.URLField(verbose_name='Ссылка', null=True, blank=True)
-    user = models.OneToOneField(User, verbose_name='Пользователь',
+    user_id = models.OneToOneField(User, verbose_name='ID пользователя',
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
     state = models.BooleanField(verbose_name='статус получения заказов', default=True)
@@ -182,12 +228,12 @@ class Category(models.Model):
         return self.name
 
 class ShopCategory(models.Model):
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='shop_categories', verbose_name='Магазин')
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='shop_categories', verbose_name='Категория')
+    shop_id = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='shop_categories', verbose_name='Магазин')
+    category_id = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='shop_categories', verbose_name='Категория')
     is_main = models.BooleanField(default=False, verbose_name='Основная категория')
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['shop', 'category'], name='unique_shop_category')
+            models.UniqueConstraint(fields=['shop_id', 'category_id'], name='unique_shop_category')
         ]
         verbose_name = 'Категория товара в магазине'
         verbose_name_plural = 'Список категорий товаров в магазинах'
@@ -195,7 +241,7 @@ class ShopCategory(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=80, verbose_name='Название')
-    category = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True,
+    category_id = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True,
                                  on_delete=models.CASCADE)
 
     class Meta:
@@ -207,12 +253,10 @@ class Product(models.Model):
         return self.name
 
 class ProductInfo(models.Model):
-    #model = models.CharField(max_length=80, verbose_name='Модель', blank=True)
+    model = models.CharField(max_length=80, verbose_name='Модель', blank=True) #None в нашем случае будет равен пустой строке, так как это charfield https://django.fun/ru/docs/django/4.1/ref/models/fields/#null
     external_id = models.PositiveIntegerField(verbose_name='Внешний ИД')
-    product = models.ForeignKey(Product, verbose_name='Продукт', related_name='product_infos', blank=True,
-                                on_delete=models.CASCADE)
-    shop = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_infos', blank=True,
-                             on_delete=models.CASCADE)
+    product_id = models.ForeignKey(Product, verbose_name='Продукт', related_name='product_infos', on_delete=models.CASCADE)
+    shop_id = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_infos', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(verbose_name='Количество')
     price = models.PositiveIntegerField(verbose_name='Цена')
     price_rrc = models.PositiveIntegerField(verbose_name='Рекомендуемая розничная цена')
@@ -221,7 +265,7 @@ class ProductInfo(models.Model):
         verbose_name = 'Информация о продукте'
         verbose_name_plural = "Информационный список о продуктах"
         constraints = [
-            models.UniqueConstraint(fields=['product', 'shop', 'external_id'], name='unique_product_info'),
+            models.UniqueConstraint(fields=['product_id', 'shop_id', 'external_id'], name='unique_product_info'),
         ]
 
 class Parameter(models.Model):
@@ -237,18 +281,18 @@ class Parameter(models.Model):
 
 
 class ProductParameter(models.Model):
-    product_info = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте',
+    product_info_id = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте',
                                      related_name='product_parameters',
                                      on_delete=models.CASCADE)
-    parameter = models.ForeignKey(Parameter, verbose_name='Параметр', related_name='product_parameters',
+    parameter_id = models.ForeignKey(Parameter, verbose_name='Параметр', related_name='product_parameters',
                                      on_delete=models.CASCADE)
-    value = models.CharField(verbose_name='Значение', max_length=100, blank=True)
+    value = models.CharField(verbose_name='Значение', max_length=100)
 
     class Meta:
         verbose_name = 'Параметр'
         verbose_name_plural = "Список параметров"
         constraints = [
-            models.UniqueConstraint(fields=['product_info', 'parameter'], name='unique_product_parameter'),
+            models.UniqueConstraint(fields=['product_info_id', 'parameter_id'], name='unique_product_parameter'),
         ]
 
 class Order(models.Model):

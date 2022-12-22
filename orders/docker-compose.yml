@@ -2,37 +2,40 @@ version: '3.9'
 
 services:
     db:
-        container_name: diplom_db
         image: postgres:13-alpine
         restart: unless-stopped
         volumes:
-            - ./data/db/:/var/lib/postgresql/data/
+            - .:/docker-entrypoint-initdb.d
+            - ../data/db/:/var/lib/postgresql/data/
         expose:
             - 5432
         env_file:
             - .env
+        healthcheck:
+            test: [ "CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
     migrate:
-        container_name: diplom_migrate
         build: .
         command: >
-          sh -c "python /app/manage.py makemigrations --noinput &&
+          sh -c "python /app/manage.py makemigrations backend --noinput &&
                  python /app/manage.py migrate --noinput"        
         volumes: 
             - .:/app
         depends_on:
-            - db
+            db:
+                condition: service_healthy
         env_file:
             - .env
         
     django:
-        container_name: diplom_django
         restart: unless-stopped
         build: .
         command: sh -c "gunicorn --bind 0.0.0.0:8000 orders.wsgi"
         volumes: 
             - .:/app
-            - static_data:/app/static
         depends_on:
             - migrate
         expose: 
@@ -43,7 +46,6 @@ services:
             - .env 
 
     nginx:
-        container_name: diplom_nginx
         image: nginx:1.19.8-alpine
         restart: unless-stopped
         depends_on:
@@ -51,7 +53,6 @@ services:
         ports:
             - "80:80"
         volumes: 
-            - static_data:/var/www/html/static
+            - ./www/static:/var/www/static
+            - ./www/html/errors:/var/www/html/errors
             - ./nginx-conf.conf:/etc/nginx/conf.d/default.conf
-volumes:
-    static_data:

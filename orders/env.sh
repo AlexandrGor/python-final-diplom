@@ -1,5 +1,0 @@
-export SECRET_KEY_1='zq58!7x27(q&%^&7fry9qeawda+f*zmv$#tb-1c3xgv785&f*f'
-export POSTGRES_USER='user1'
-export POSTGRES_PASSWORD='user1'
-export POSTGRES_DB='netology_diplom'
-export PGDATA='/var/lib/postgresql/data/pgdata'
