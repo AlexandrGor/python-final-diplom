@@ -1,0 +1,1141 @@
+{
+	"info": {
+		"_postman_id": "743eae15-7756-470d-b456-6fe5eeaabbe2",
+		"name": "Diplom",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "регистрация пользователя",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "имя ",
+									"type": "text"
+								},
+								{
+									"key": "last_name",
+									"value": "фамилия",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "qwer1234A",
+									"type": "text"
+								},
+								{
+									"key": "company",
+									"value": "asdads",
+									"type": "text"
+								},
+								{
+									"key": "position",
+									"value": "345345",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "подтверждение email",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "имя ",
+									"type": "text"
+								},
+								{
+									"key": "last_name",
+									"value": "фамилия",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "qwer1234A",
+									"type": "text"
+								},
+								{
+									"key": "company",
+									"value": "asdads",
+									"type": "text"
+								},
+								{
+									"key": "position",
+									"value": "345345",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/register",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "изменение пользователя",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwiZXhwIjoxNjcwMTc3MzQ4fQ.Bw3IZ43C_HM-CnlNJCmSAlOQxOMT5gFhxMs6Z816Ibc"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "имя 545",
+									"type": "text"
+								},
+								{
+									"key": "last_name",
+									"value": "фамилия54",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "qwer1234Aasd",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "company",
+									"value": "5345",
+									"type": "text"
+								},
+								{
+									"key": "position",
+									"value": "345345sdf",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/details/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"details",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "пользователь",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZXhwIjoxNjczNjYyMTA5fQ.x3MBXOYG4xWct2XnqPzis6CPwI_xg6aREGeJ5XCFXTQ"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "first_name",
+									"value": "имя 545111",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "last_name",
+									"value": "фамилия54",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "qwer1234Aasd",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "company",
+									"value": "5345",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "position",
+									"value": "345345sdf",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/details/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"details",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "вход, логин",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "qwer1234A",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/login/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"login",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "восстановление пароля",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "a.iskakov@mail.ru",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://example.com:8000/api/v1/user/password_reset",
+							"protocol": "http",
+							"host": [
+								"example",
+								"com"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"password_reset"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "подтверждение востановления пароля",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "a.iskakov@mail.ru",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "qwer1234A",
+									"type": "text"
+								},
+								{
+									"key": "token",
+									"value": "b50c20bd4a2282931a89adb",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://example.com:8000/api/v1/user/password_reset/confirm",
+							"protocol": "http",
+							"host": [
+								"example",
+								"com"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"password_reset",
+								"confirm"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "контакты",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/contact",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"contact"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "создать контакт",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "city",
+									"value": "Almaty",
+									"type": "text"
+								},
+								{
+									"key": "street",
+									"value": "Shashkin street 40",
+									"type": "text"
+								},
+								{
+									"key": "house",
+									"value": "Apartament 28",
+									"type": "text"
+								},
+								{
+									"key": "structure",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "building",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "apartment",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "+49564563242",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/contact",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"contact"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "редактировать контакт",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "city",
+									"value": "Almaty",
+									"type": "text"
+								},
+								{
+									"key": "street",
+									"value": "Shashkin street 40",
+									"type": "text"
+								},
+								{
+									"key": "house",
+									"value": "Apartament 28",
+									"type": "text"
+								},
+								{
+									"key": "structure",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "building",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "apartment",
+									"value": "123",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "+49564563242",
+									"type": "text"
+								},
+								{
+									"key": "id",
+									"value": "1",
+									"type": "default"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/contact",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"contact"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "удалить контакты",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "items",
+									"value": "1",
+									"type": "default"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/contact",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"contact"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "partner",
+			"item": [
+				{
+					"name": "обновить прайс партнера",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "url",
+									"value": "https://raw.githubusercontent.com/netology-code/pd-diplom/master/data/shop1.yaml",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/update",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "очистить весь прайс партнера",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/update/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"update",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "просмотр своих позиций по id магазина",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost/api/v1/all_offers/?shop_id=1&ordering=quantity",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"all_offers",
+								""
+							],
+							"query": [
+								{
+									"key": "shop_id",
+									"value": "1"
+								},
+								{
+									"key": "ordering",
+									"value": "quantity"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "прием заказов вкл/выкл",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "state",
+									"value": "on",
+									"type": "default"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/state/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"state",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "просмотр статуса приема заказов",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "url",
+									"value": "https://raw.githubusercontent.com/netology-code/pd-diplom/master/data/shop1.yaml",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/state/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"state",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "получить сформированные заказы",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/orders/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"orders",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "shop",
+			"item": [
+				{
+					"name": "магазины",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "категории",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost/api/v1/categories/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "товары",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "товар, предложения по нему",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost/api/v1/products/2/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"products",
+								"2",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "поиск товаров",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost/api/v1/products/?price_max=80000&shop_id=1&category=224",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"products",
+								""
+							],
+							"query": [
+								{
+									"key": "price_max",
+									"value": "80000"
+								},
+								{
+									"key": "shop_id",
+									"value": "1"
+								},
+								{
+									"key": "category",
+									"value": "224"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "поиск предложений по всем товарам",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "просмотр корзины",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNjcyMDk1NTEzfQ.UoqOmGkuVS69-Jd5eQh5iVI9oXJVOEk1nW7q7XRm1DA"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/basket/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"basket",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "добавить в корзину",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNjcyMTE1MTc3fQ.CmsjBHMB5kLgGNoA7H441WnpbQQSGYHPrJaJ6LbB8v8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"items\":[\n                {\n                    \"product_info_pk\":  2,\n                    \"quantity\": 1\t\n                },\n                {\n                    \"product_info_pk\":  4,\n                    \"quantity\": 2\t\t\n                }\n            ]   \n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/basket/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"basket",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "редактировать количество товаров в корзине",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNjcyMDk1NTEzfQ.UoqOmGkuVS69-Jd5eQh5iVI9oXJVOEk1nW7q7XRm1DA"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"items\": [\n         { \"id\": 95, \"quantity\": 2 }, \n         { \"id\": 96, \"quantity\": 1 } \n        ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/basket/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"basket",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "удаление из корзины",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNjcyMTg0MzcyfQ.jROaee6HwAUCSNRaqsRdNqMUq2RjGDrRfksyxLjr7AU"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "items",
+									"value": "10, 11",
+									"type": "default"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/basket/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"basket",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "разместить заказ",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZXhwIjoxNjcyNDAzODE1fQ.Y2XBqjLec9nt-ICvdF-_EZJQHf9xOrRslDBRyA0h3xA"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "contact",
+									"value": "8",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/orders/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "заказы",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token e777c8b85f4a664aab792eb2e6d794284134eaea"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/order",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"order"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "заказ",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token e777c8b85f4a664aab792eb2e6d794284134eaea"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/order",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"order"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

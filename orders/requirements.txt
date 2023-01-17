@@ -8,3 +8,4 @@ gunicorn
 pyjwt
 pyyaml
 requests
+django-filter

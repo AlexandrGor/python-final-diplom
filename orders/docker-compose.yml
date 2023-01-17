@@ -20,7 +20,8 @@ services:
     migrate:
         build: .
         command: >
-          sh -c "python /app/manage.py makemigrations backend --noinput &&
+          sh -c "python /app/manage.py collectstatic --noinput &&
+                 python /app/manage.py makemigrations backend --noinput &&
                  python /app/manage.py migrate --noinput"        
         volumes: 
             - .:/app

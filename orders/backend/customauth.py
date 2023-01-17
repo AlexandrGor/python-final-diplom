@@ -29,7 +29,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             AuthenticationFailed и позволим DRF сделать все остальное.
         """
         request.user = None
-        print('Кастомная аутентификация для rest api в деле.............................................')
+        print('........................Кастомная JWT аутентификация для rest api........................')
         # 'auth_header' должен быть массивом с двумя элементами:
         # 1) именем заголовка аутентификации (Token в нашем случае)
         # 2) сам JWT, по которому мы должны пройти аутентифкацию
@@ -64,14 +64,16 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         except Exception:
-            print('Ошибка аутентификации. Невозможно декодировать токен')
-            msg = 'Ошибка аутентификации. Невозможно декодировать токен'
+            print('Ошибка аутентификации. Либо истёк срок токена, либо невозможно его декодировать.')
+            msg = 'Ошибка аутентификации. Либо истёк срок токена, либо невозможно его декодировать.'
             raise exceptions.AuthenticationFailed(msg)
 
+        if not str(payload['id']).isdigit():
+            print('Данный токен не для аутентификации.')
+            msg = 'Данный токен не для аутентификации.'
+            raise exceptions.AuthenticationFailed(msg)
         try:
             user = User.objects.get(pk=payload['id'])
-
-            #...здесь также можно добавить проверку времени жизни токена...#
 
         except User.DoesNotExist: #не обращаем внимания на warning в IDE, работает правильно
             print('Пользователь соответствующий данному токену не найден.')
@@ -82,5 +84,5 @@ class JWTAuthentication(authentication.BaseAuthentication):
             print('Данный пользователь деактивирован.')
             msg = 'Данный пользователь деактивирован.'
             raise exceptions.AuthenticationFailed(msg)
-
+        print('...........................................OK............................................')
         return (user, token)

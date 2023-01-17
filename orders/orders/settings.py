@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_rest_passwordreset',
     'backend',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -160,16 +161,20 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '4/minute',
+        'anon': '20/minute',
         'user': '60/minute'
     },
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
+APPEND_SLASH = True
 
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-RECIPIENTS_EMAIL = ['manager@mysite.com']   # список почт получателей по уполчанию
-DEFAULT_FROM_EMAIL = 'admin@mysite.com'  # отправитель по умолчанию
+RECIPIENTS_EMAIL = ['alexdjangoserv@gmail.com']   # Список почт получателей по уполчанию. Администраторы, менеджеры.
+DEFAULT_FROM_EMAIL = 'admin@mysite.com'  # Отправитель по умолчанию
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = "alexdjangoserv@gmail.com"
