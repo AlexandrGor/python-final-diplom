@@ -121,6 +121,43 @@
 					"response": []
 				},
 				{
+					"name": "вход, логин",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "a.iskakov1989@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "qwer1234A",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/user/login/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"login",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "изменение пользователя",
 					"request": {
 						"method": "PATCH",
@@ -249,43 +286,6 @@
 								"v1",
 								"user",
 								"details",
-								""
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "вход, логин",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "email",
-									"value": "a.iskakov1989@gmail.com",
-									"type": "text"
-								},
-								{
-									"key": "password",
-									"value": "qwer1234A",
-									"type": "text"
-								}
-							]
-						},
-						"url": {
-							"raw": "http://localhost/api/v1/user/login/",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"path": [
-								"api",
-								"v1",
-								"user",
-								"login",
 								""
 							]
 						}
@@ -574,6 +574,14 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "просмотр выполнения задачи Celery (например, отправка email)",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
 				}
 			]
 		},
@@ -611,6 +619,41 @@
 								"v1",
 								"partner",
 								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "просмотр статуса обновления прайса партнера (Celery)",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Token db15687dbc6b7cef700eea80614edaa4c425560c"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "http://localhost/api/v1/partner/update/xxx/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"partner",
+								"update",
+								"xxx",
+								""
 							]
 						}
 					},
@@ -798,7 +841,20 @@
 					"name": "магазины",
 					"request": {
 						"method": "GET",
-						"header": []
+						"header": [],
+						"url": {
+							"raw": "http://localhost/api/v1/shops/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"path": [
+								"api",
+								"v1",
+								"shops",
+								""
+							]
+						}
 					},
 					"response": []
 				},

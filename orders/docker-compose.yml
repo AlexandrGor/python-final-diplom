@@ -5,7 +5,9 @@ services:
         image: postgres:13-alpine
         restart: unless-stopped
         volumes:
-            - .:/docker-entrypoint-initdb.d
+            #Cценарии в /docker-entrypoint-initdb.d запускаются только в том случае, если каталог данных пуст.
+            #Это означает, что во время запуска любая база данных, запущенная до этого, не будет изменена.
+            - ../data/initdb/:/docker-entrypoint-initdb.d
             - ../data/db/:/var/lib/postgresql/data/
         expose:
             - 5432
@@ -16,6 +18,24 @@ services:
             interval: 10s
             timeout: 5s
             retries: 5
+
+    redis:
+        restart: unless-stopped
+        image: redis:7.0.0-alpine3.15
+        volumes:
+            - ../data/redis/:/data/
+        expose:
+            - 6379
+
+    celery:
+        build: .
+        env_file:
+            - .env
+        entrypoint: celery -A orders worker
+        depends_on:
+            - redis
+        volumes:
+            - .:/app
 
     migrate:
         build: .
@@ -39,6 +59,8 @@ services:
             - .:/app
         depends_on:
             - migrate
+            - redis
+            - celery
         expose: 
             - 8000        
         environment:

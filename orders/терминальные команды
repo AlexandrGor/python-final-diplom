@@ -1,6 +1,17 @@
+#----------------Запуск виртуального окружения
 . /home/alexandr/virtual_envs/env-diplom/bin/activate
 или
 source ~/virtual_envs/env-diplom/bin/activate
-pip freeze | grep -v 'pkg_resources' | grep -v 'cffi' | grep -v 'pysqlite3' > requirements.txt
-. env.sh
+
+#----------------Вывод установленных пакетов в requirements.txt
+pip freeze > requirements.txt
+
+#----------------Запуск сервера
 docker-compose up -d
+
+#----------------Тестирование с помощью Pytest
+[ pip install importlib_metadata==3.6 ]     (For python <3.8, чтобы не было warning в pytest)
+. test.sh
+
+#----------------Обновление schema.yml для http://localhost/api/schema/swagger-ui/
+./manage.py spectacular --color --file schema.yml

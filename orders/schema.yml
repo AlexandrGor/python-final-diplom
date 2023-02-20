@@ -1,0 +1,2059 @@
+openapi: 3.0.3
+info:
+  title: Netology homework API
+  version: 1.0.0
+  description: Orders API
+paths:
+  /api/v1/all_offers/:
+    get:
+      operationId: v1_all_offers_list
+      description: |-
+        GET запрос ...api/v1/all_offers/
+        Вывод предложений по всем товарам.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: category_id
+        schema:
+          type: integer
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: external_id
+        schema:
+          type: integer
+      - in: query
+        name: model
+        schema:
+          type: string
+      - in: query
+        name: name
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: price_min
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: product_id
+        schema:
+          type: integer
+      - in: query
+        name: shop
+        schema:
+          type: string
+      - in: query
+        name: shop_id
+        schema:
+          type: integer
+      - in: query
+        name: updated_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: updated_before
+        schema:
+          type: string
+          format: date
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductInfoAllOffersList'
+          description: ''
+  /api/v1/all_offers/{id}/:
+    get:
+      operationId: v1_all_offers_retrieve
+      description: |-
+        Класс для:
+        1. Вывода всей базы-прайса всех магазинов без привязки к одному продукту.
+        Фильтрация (по параметрам: 'name', 'model', 'external_id', 'product_id', 'shop_id', 'shop', 'created_[after,before]',
+        'updated_[after,before]', 'price_[min,max]', 'category', 'category_id').
+        Т.е. в отличие от класса ProductViewSet можно выставить поиск, например, только для определённого магазина.
+        Поставщик может видеть свои предложения (?shop_id=1)(?shop=связной),
+        и контролировать остаток quantity по ним (?ordering=quantity).
+        2. Просмотра предложения по его id ...api/v1/all_offers/<pk>/ GET
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Информация о продукте.
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductInfoAllOffers'
+          description: ''
+  /api/v1/basket/:
+    get:
+      operationId: v1_basket_retrieve
+      description: |-
+        GET запрос .../api/v1/basket/
+        Просмотр корзины. Авторизация по токену.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItem'
+          description: ''
+    post:
+      operationId: v1_basket_create
+      description: |-
+        POST запрос .../api/v1/basket/
+        Добавление товара в корзину. Авторизация по токену.
+        {
+            "items":[{ "product_info_id":  1,
+                       "quantity": 1         }]
+        }
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItem'
+          description: ''
+    put:
+      operationId: v1_basket_update
+      description: |-
+        PUT запрос .../api/v1/basket/
+        Редактирование количества товара в корзине. Авторизация по токену.
+        {
+            "items": [{"id": 39, "quantity": 2}]
+        }
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderItem'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderItem'
+          description: ''
+    delete:
+      operationId: v1_basket_destroy
+      description: |-
+        DELETE запрос .../api/v1/basket/
+        Удаление товара из корзины. Авторизация по токену.
+        items = '92,93,94'
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/categories/:
+    get:
+      operationId: v1_categories_list
+      description: |-
+        Класс для:
+        1. Просмотра всех категорий. .../api/v1/categories/ GET.
+        2. Просмотра определенной категории. .../api/v1/categories/<pk>/ GET.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoriesList'
+          description: ''
+  /api/v1/categories/{id}/:
+    get:
+      operationId: v1_categories_retrieve
+      description: |-
+        Класс для:
+        1. Просмотра всех категорий. .../api/v1/categories/ GET.
+        2. Просмотра определенной категории. .../api/v1/categories/<pk>/ GET.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Категория.
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Categories'
+          description: ''
+  /api/v1/orders/:
+    get:
+      operationId: v1_orders_list
+      description: |-
+        GET запрос .../api/v1/orders/
+        Просмотр всех сформированных заказов пользователя. Авторизация по токену.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderList'
+          description: ''
+    post:
+      operationId: v1_orders_create
+      description: |-
+        POST запрос .../api/v1/orders/
+        Размещение заказа из корзины (смена статуса объекта Order с basket на new,
+        корректировка quantity предложений на величины соответствующих позиций в заказе,
+        отправка писем на email'ы покупателя и администратора).
+        Авторизация по токену.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Order'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Order'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/orders/{id}/:
+    get:
+      operationId: v1_orders_retrieve
+      description: |-
+        GET запрос .../api/v1/orders/<pk>/
+        Просмотра определенного заказа по id. Авторизация по токену.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Заказ.
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/partner/orders/:
+    get:
+      operationId: v1_partner_orders_list
+      description: |-
+        GET запрос .../api/v1/partner/orders/ [ ?status=new ]
+        Просмотр поставщиком сформированных заказов с его товарами. Авторизация по токену.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPartnerOrdersList'
+          description: ''
+  /api/v1/partner/state/:
+    get:
+      operationId: v1_partner_state_retrieve
+      description: |-
+        GET запрос .../api/v1/partner/state/
+        Просмотр статуса отключения приема заказов магазина поставщика. Авторизация по токену.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerState'
+          description: ''
+    post:
+      operationId: v1_partner_state_create
+      description: |-
+        POST запрос .../api/v1/partner/state/
+        Включение и отключение приема заказов магазина поставщика. Авторизация по токену.
+        state = on [или off]
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerState'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PartnerState'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PartnerState'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerState'
+          description: ''
+  /api/v1/partner/update/:
+    get:
+      operationId: v1_partner_update_retrieve
+      description: |-
+        GET запрос ...api/v1/partner/update/<task_id>/
+        Получение статуса обновления прайса по id celery-задачи. Авторизация по токену.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerUpdate'
+          description: ''
+    post:
+      operationId: v1_partner_update_create
+      description: |-
+        POST запрос ...api/v1/partner/update/
+        Обновление прайса от поставщика, получение id celery-задачи. Авторизация по токену.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerUpdate'
+          description: ''
+    delete:
+      operationId: v1_partner_update_destroy
+      description: |-
+        DELETE запрос ...api/v1/partner/update/
+        Удаления всего прайса. Авторизация по токену.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/partner/update/{task_id}/:
+    get:
+      operationId: v1_partner_update_retrieve_2
+      description: |-
+        GET запрос ...api/v1/partner/update/<task_id>/
+        Получение статуса обновления прайса по id celery-задачи. Авторизация по токену.
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerUpdate'
+          description: ''
+    post:
+      operationId: v1_partner_update_create_2
+      description: |-
+        POST запрос ...api/v1/partner/update/
+        Обновление прайса от поставщика, получение id celery-задачи. Авторизация по токену.
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PartnerUpdate'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerUpdate'
+          description: ''
+    delete:
+      operationId: v1_partner_update_destroy_2
+      description: |-
+        DELETE запрос ...api/v1/partner/update/
+        Удаления всего прайса. Авторизация по токену.
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/products/:
+    get:
+      operationId: v1_products_list
+      description: |-
+        GET запрос .../api/v1/products/
+        Просмотр всех товаров.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: category_id
+        schema:
+          type: integer
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: model
+        schema:
+          type: string
+      - in: query
+        name: name
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: price_min
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: shop
+        schema:
+          type: string
+      - in: query
+        name: shop_id
+        schema:
+          type: integer
+      - in: query
+        name: updated_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: updated_before
+        schema:
+          type: string
+          format: date
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductListList'
+          description: ''
+  /api/v1/products/{id}/:
+    get:
+      operationId: v1_products_list_2
+      description: |-
+        GET запрос .../api/v1/products/<pk>/
+        Просмотр предложений по конкретному товару.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: external_id
+        schema:
+          type: integer
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: price_min
+        schema:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      - in: query
+        name: shop
+        schema:
+          type: string
+      - in: query
+        name: shop_id
+        schema:
+          type: integer
+      - in: query
+        name: updated_after
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: updated_before
+        schema:
+          type: string
+          format: date
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductInfoList'
+          description: ''
+  /api/v1/shops/:
+    get:
+      operationId: v1_shops_list
+      description: |-
+        Класс для:
+        1. Просмотра всех магазинов. .../api/v1/shops/ GET.
+        2. Просмотра определенного магазина. .../api/v1/shops/<pk>/ GET.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShopsList'
+          description: ''
+  /api/v1/shops/{id}/:
+    get:
+      operationId: v1_shops_retrieve
+      description: |-
+        Класс для:
+        1. Просмотра всех магазинов. .../api/v1/shops/ GET.
+        2. Просмотра определенного магазина. .../api/v1/shops/<pk>/ GET.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Магазин.
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shops'
+          description: ''
+  /api/v1/task/{task_id}/:
+    get:
+      operationId: v1_task_retrieve
+      description: |-
+        Класс для:
+        GET запрос ...api/v1/task/<task_id>/
+        Получения статуса celery-задачи по id.
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/user/contact/:
+    get:
+      operationId: v1_user_contact_retrieve
+      description: |-
+        GET запрос .../api/v1/user/contact/
+        Создание контакта для пользователя. Авторизация по токену.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+    post:
+      operationId: v1_user_contact_create
+      description: |-
+        POST запрос .../api/v1/user/contact/
+        Создание контакта для аутентифицированного пользователя. Авторизация по токену.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Contact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Contact'
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+    patch:
+      operationId: v1_user_contact_partial_update
+      description: |-
+        PATCH запрос .../api/v1/user/contact/
+        Редактирование контакта пользователя с указанием id в body. Авторизация по токену.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContact'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContact'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContact'
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+    delete:
+      operationId: v1_user_contact_destroy
+      description: |-
+        DELETE запрос .../api/v1/user/contact/
+        Удаление контактов пользователя с указанием в items в body. Авторизация по токену.
+        items = '2,3,4'
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/user/details/:
+    get:
+      operationId: v1_user_details_retrieve
+      description: Класс для просмотра и изменения своего пользователя.
+      tags:
+      - v1
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: v1_user_details_update
+      description: Класс для просмотра и изменения своего пользователя.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: v1_user_details_partial_update
+      description: Класс для просмотра и изменения своего пользователя.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - CustomJWTAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/user/login/:
+    post:
+      operationId: v1_user_login_create
+      description: |-
+        POST запрос ...api/v1/user/login/
+        Получение jwt-токена по паре значений email и password для последующих авторизаций.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/v1/user/password/reset/:
+    post:
+      operationId: v1_user_password_reset_create
+      description: |-
+        POST запрос ...api/v1/user/password/reset/
+        Отправка письма с jwt-токеном на почту для подтверждения.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPasswordReset'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserPasswordReset'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserPasswordReset'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPasswordReset'
+          description: ''
+  /api/v1/user/password/reset/confirm/:
+    post:
+      operationId: v1_user_password_reset_confirm_create
+      description: |-
+        POST запрос ...api/v1/user/password/reset/confirm/
+        1. Указанному jwt-токен проходит декодирование.
+        2. Определяется id пользователя.
+        3. Пользователю с данным id устанавливается указанный password.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPasswordResetConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserPasswordResetConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserPasswordResetConfirm'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPasswordResetConfirm'
+          description: ''
+  /api/v1/user/register/:
+    post:
+      operationId: v1_user_register_create
+      description: |-
+        POST запрос ...api/v1/user/register/
+        Письмо для подтверждения регистрации будет отправлено на указанный email.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Registration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Registration'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Registration'
+          description: ''
+  /api/v1/user/register/confirm/:
+    post:
+      operationId: v1_user_register_confirm_create
+      description: |-
+        POST запрос ...api/v1/user/register/confirm/
+        1. Декодировка указанного поля token.
+        2. Определение id пользователя.
+        3. Установление user.email_confirmed=True
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegistrationConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegistrationConfirm'
+        required: true
+      security:
+      - CustomJWTAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationConfirm'
+          description: ''
+components:
+  schemas:
+    Categories:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название
+          maxLength: 40
+        shops:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        shop_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        products:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        product_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        parent_category:
+          type: string
+          readOnly: true
+        parent_category_id:
+          type: integer
+          readOnly: true
+        child_categories:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        child_category_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+      required:
+      - child_categories
+      - child_category_ids
+      - id
+      - name
+      - parent_category
+      - parent_category_id
+      - product_ids
+      - products
+      - shop_ids
+      - shops
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        city:
+          type: string
+          title: Город
+          maxLength: 50
+        street:
+          type: string
+          title: Улица
+          maxLength: 100
+        house:
+          type: string
+          title: Дом
+          maxLength: 15
+        structure:
+          type: string
+          title: Корпус
+          maxLength: 15
+        building:
+          type: string
+          title: Строение
+          maxLength: 15
+        apartment:
+          type: string
+          title: Квартира
+          maxLength: 15
+        phone:
+          type: string
+          title: Телефон
+          maxLength: 20
+      required:
+      - id
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 8
+        token:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - password
+      - token
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        total_quantity:
+          type: string
+          readOnly: true
+        cost_of_delivery:
+          type: string
+          readOnly: true
+        total_price:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        contact_info:
+          allOf:
+          - $ref: '#/components/schemas/Contact'
+          readOnly: true
+        contact:
+          type: integer
+          minimum: 0
+          writeOnly: true
+        ordered_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - contact
+      - contact_info
+      - cost_of_delivery
+      - created_at
+      - id
+      - ordered_items
+      - status
+      - total_price
+      - total_quantity
+      - updated_at
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        product_info:
+          allOf:
+          - $ref: '#/components/schemas/ProductInfoLite'
+          readOnly: true
+        product_info_id:
+          type: integer
+          minimum: 0
+          writeOnly: true
+      required:
+      - id
+      - product_info
+      - product_info_id
+    PaginatedCategoriesList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Categories'
+    PaginatedOrderList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+    PaginatedPartnerOrdersList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerOrders'
+    PaginatedProductInfoAllOffersList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductInfoAllOffers'
+    PaginatedProductInfoList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductInfo'
+    PaginatedProductListList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductList'
+    PaginatedShopsList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shops'
+    PartnerContact:
+      type: object
+      properties:
+        city:
+          type: string
+          title: Город
+          maxLength: 50
+        street:
+          type: string
+          title: Улица
+          maxLength: 100
+        house:
+          type: string
+          title: Дом
+          maxLength: 15
+        structure:
+          type: string
+          title: Корпус
+          maxLength: 15
+        building:
+          type: string
+          title: Строение
+          maxLength: 15
+        apartment:
+          type: string
+          title: Квартира
+          maxLength: 15
+        phone:
+          type: string
+          title: Телефон
+          maxLength: 20
+    PartnerOrderItem:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        product_info:
+          allOf:
+          - $ref: '#/components/schemas/PartnerProductInfo'
+          readOnly: true
+      required:
+      - product_info
+    PartnerOrders:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        user_email:
+          type: string
+          readOnly: true
+        user_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        contact_info:
+          allOf:
+          - $ref: '#/components/schemas/PartnerContact'
+          readOnly: true
+        our_ordered_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerOrderItem'
+          readOnly: true
+      required:
+      - contact_info
+      - created_at
+      - id
+      - our_ordered_items
+      - status
+      - updated_at
+      - user_email
+      - user_name
+    PartnerProductInfo:
+      type: object
+      properties:
+        offer_id:
+          type: integer
+        external_id:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Внешний ИД
+        product:
+          type: string
+          readOnly: true
+        product_id:
+          type: integer
+          title: Продукт
+        model:
+          type: string
+          title: Модель
+          maxLength: 80
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      required:
+      - external_id
+      - offer_id
+      - price
+      - product
+      - product_id
+    PartnerState:
+      type: object
+      properties:
+        state:
+          $ref: '#/components/schemas/StateEnum'
+      required:
+      - state
+    PartnerUpdate:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+      required:
+      - url
+    PatchedContact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        city:
+          type: string
+          title: Город
+          maxLength: 50
+        street:
+          type: string
+          title: Улица
+          maxLength: 100
+        house:
+          type: string
+          title: Дом
+          maxLength: 15
+        structure:
+          type: string
+          title: Корпус
+          maxLength: 15
+        building:
+          type: string
+          title: Строение
+          maxLength: 15
+        apartment:
+          type: string
+          title: Квартира
+          maxLength: 15
+        phone:
+          type: string
+          title: Телефон
+          maxLength: 20
+    PatchedUser:
+      type: object
+      description: Ощуществляет сериализацию и десериализацию объектов User.
+      properties:
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 8
+        is_active:
+          type: boolean
+          title: Активный
+          description: Отметьте, если пользователь должен считаться активным. Уберите
+            эту отметку вместо удаления учётной записи.
+          readOnly: true
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+          readOnly: true
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 30
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        middle_name:
+          type: string
+          maxLength: 150
+        company:
+          type: string
+          maxLength: 40
+        position:
+          type: string
+          maxLength: 40
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Type of user
+    ProductInfo:
+      type: object
+      properties:
+        offer_id:
+          type: integer
+          readOnly: true
+        shop:
+          type: string
+          readOnly: true
+        shop_id:
+          type: integer
+          title: Магазин
+        model:
+          type: string
+          title: Модель
+          maxLength: 80
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+        price_rrc:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Рекомендуемая розничная цена
+        product_parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductParameter'
+          readOnly: true
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        external_id:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Внешний ИД
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - external_id
+      - offer_id
+      - price
+      - price_rrc
+      - product_parameters
+      - quantity
+      - shop
+      - shop_id
+      - updated_at
+    ProductInfoAllOffers:
+      type: object
+      properties:
+        offer_id:
+          type: integer
+          readOnly: true
+        shop:
+          type: string
+          readOnly: true
+        shop_id:
+          type: integer
+          title: Магазин
+        product:
+          type: string
+          readOnly: true
+        product_id:
+          type: integer
+          title: Продукт
+        category:
+          type: string
+          readOnly: true
+        category_id:
+          type: integer
+          readOnly: true
+        model:
+          type: string
+          title: Модель
+          maxLength: 80
+        product_parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductParameter'
+          readOnly: true
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+        price_rrc:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Рекомендуемая розничная цена
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Количество
+        external_id:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Внешний ИД
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - category_id
+      - created_at
+      - external_id
+      - offer_id
+      - price
+      - price_rrc
+      - product
+      - product_id
+      - product_parameters
+      - quantity
+      - shop
+      - shop_id
+      - updated_at
+    ProductInfoLite:
+      type: object
+      properties:
+        offer_id:
+          type: integer
+        product:
+          type: string
+          readOnly: true
+        product_id:
+          type: integer
+          title: Продукт
+        shop:
+          type: string
+          readOnly: true
+        shop_id:
+          type: integer
+          title: Магазин
+        model:
+          type: string
+          title: Модель
+          maxLength: 80
+        price:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Цена
+      required:
+      - offer_id
+      - price
+      - product
+      - product_id
+      - shop
+      - shop_id
+    ProductList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название
+          maxLength: 80
+        category:
+          type: string
+          readOnly: true
+        category_id:
+          type: integer
+          nullable: true
+          title: Категория
+        offers:
+          type: array
+          items:
+            type: string
+      required:
+      - category
+      - id
+      - name
+      - offers
+    ProductParameter:
+      type: object
+      properties:
+        parameter:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          title: Значение
+          maxLength: 100
+      required:
+      - parameter
+      - value
+    Registration:
+      type: object
+      description: Сериализация регистрации пользователя и создания нового.
+      properties:
+        email:
+          type: string
+          maxLength: 255
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 8
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 30
+        middle_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        company:
+          type: string
+          maxLength: 40
+        position:
+          type: string
+          maxLength: 40
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Type of user
+        email_confirmed:
+          type: boolean
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Активный
+          description: Отметьте, если пользователь должен считаться активным. Уберите
+            эту отметку вместо удаления учётной записи.
+          readOnly: true
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+          readOnly: true
+      required:
+      - email
+      - email_confirmed
+      - is_active
+      - is_staff
+      - password
+    RegistrationConfirm:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 255
+      required:
+      - token
+    Shops:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название
+          maxLength: 50
+        url:
+          type: string
+          format: uri
+          nullable: true
+          title: Ссылка
+          maxLength: 200
+        user_id:
+          type: integer
+          nullable: true
+          title: ID пользователя
+        is_active:
+          type: boolean
+          title: Активный
+        categories:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        category_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+      required:
+      - categories
+      - category_ids
+      - id
+      - name
+    StateEnum:
+      enum:
+      - 'on'
+      - 'off'
+      type: string
+    TypeEnum:
+      enum:
+      - shop
+      - buyer
+      type: string
+    User:
+      type: object
+      description: Ощуществляет сериализацию и десериализацию объектов User.
+      properties:
+        email:
+          type: string
+          format: email
+          title: Адрес электронной почты
+          readOnly: true
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 8
+        is_active:
+          type: boolean
+          title: Активный
+          description: Отметьте, если пользователь должен считаться активным. Уберите
+            эту отметку вместо удаления учётной записи.
+          readOnly: true
+        is_staff:
+          type: boolean
+          title: Статус персонала
+          description: Отметьте, если пользователь может входить в административную
+            часть сайта.
+          readOnly: true
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 30
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 150
+        middle_name:
+          type: string
+          maxLength: 150
+        company:
+          type: string
+          maxLength: 40
+        position:
+          type: string
+          maxLength: 40
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TypeEnum'
+          title: Type of user
+      required:
+      - email
+      - is_active
+      - is_staff
+      - password
+    UserPasswordReset:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        token:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - token
+    UserPasswordResetConfirm:
+      type: object
+      properties:
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 8
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 255
+      required:
+      - password
+      - token
+  securitySchemes:
+    CustomJWTAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix 'Token'

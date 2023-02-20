@@ -1,17 +1,25 @@
-#В Django существует идея бекендов аутентификации.
-#Cоздание собственный бекенд для поддержки JWT,
-#поскольку по умолчанию он не поддерживается ни Django, ни Django REST Framework (DRF).
+#Cоздание собственного бекенда для поддержки JWT.
 import jwt
-
 from django.conf import settings
-
 from rest_framework import authentication, exceptions
-
 from .models import User
-
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
 class JWTAuthentication(authentication.BaseAuthentication):
     authentication_header_prefix = 'Token'
+
+    class CustomTokenScheme(OpenApiAuthenticationExtension):
+        target_class = "backend.customauth.JWTAuthentication"
+        name = "CustomJWTAuth"
+
+        def get_security_definition(self, auto_schema): #для drf-spectacular
+            return {
+                "type": "apiKey",
+                "in": "header",
+                "name": "Authorization",
+                "description": "Token-based authentication with required prefix 'Token'",
+            }
+
 
     def authenticate(self, request):
         """
@@ -29,7 +37,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             AuthenticationFailed и позволим DRF сделать все остальное.
         """
         request.user = None
-        print('........................Кастомная JWT аутентификация для rest api........................')
+        #print('........................Кастомная JWT аутентификация для rest api........................')
         # 'auth_header' должен быть массивом с двумя элементами:
         # 1) именем заголовка аутентификации (Token в нашем случае)
         # 2) сам JWT, по которому мы должны пройти аутентифкацию
@@ -64,25 +72,31 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         except Exception:
-            print('Ошибка аутентификации. Либо истёк срок токена, либо невозможно его декодировать.')
+            #print('Ошибка аутентификации. Либо истёк срок токена, либо невозможно его декодировать.')
             msg = 'Ошибка аутентификации. Либо истёк срок токена, либо невозможно его декодировать.'
             raise exceptions.AuthenticationFailed(msg)
 
         if not str(payload['id']).isdigit():
-            print('Данный токен не для аутентификации.')
+            #print('Данный токен не для аутентификации.')
             msg = 'Данный токен не для аутентификации.'
             raise exceptions.AuthenticationFailed(msg)
         try:
             user = User.objects.get(pk=payload['id'])
 
         except User.DoesNotExist: #не обращаем внимания на warning в IDE, работает правильно
-            print('Пользователь соответствующий данному токену не найден.')
+            #print('Пользователь соответствующий данному токену не найден.')
             msg = 'Пользователь соответствующий данному токену не найден.'
             raise exceptions.AuthenticationFailed(msg)
 
         if not user.is_active:
-            print('Данный пользователь деактивирован.')
+            #print('Данный пользователь деактивирован.')
             msg = 'Данный пользователь деактивирован.'
             raise exceptions.AuthenticationFailed(msg)
-        print('...........................................OK............................................')
+
+        if not user.email_confirmed:
+            #print('Почта не подтверждена.')
+            msg = 'Почта не подтверждена.'
+            raise exceptions.AuthenticationFailed(msg)
+
+        #print('...........................................OK............................................')
         return (user, token)

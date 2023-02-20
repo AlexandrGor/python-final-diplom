@@ -1,0 +1,22 @@
+{% extends "base_generic.html" %}
+{% block allauth_content %}
+  <div class="container text-center">
+    {% block body %}
+
+    {% if messages %}
+    <div>
+      <strong>Messages:</strong>
+      <ul>
+        {% for message in messages %}
+        <li>{{message}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% block content %}
+    {% endblock %}
+    {% endblock %}
+    {% block extra_body %}
+    {% endblock %}
+  </div>
+{% endblock %}

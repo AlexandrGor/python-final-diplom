@@ -1,12 +1,11 @@
 from django.urls import path, include
 from .views import LoginAPIView, RegistrationAPIView, RegistrationConfirmAPIView, UserRetrieveUpdateAPIView, UserPasswordResetAPIView,\
-    UserPasswordResetConfirmAPIView, PartnerUpdateAPIView, OrderItemAPIView, PartnerOrdersViewSet, PartnerStateAPIView
+    UserPasswordResetConfirmAPIView, PartnerUpdateAPIView, OrderItemAPIView, PartnerOrdersViewSet, PartnerStateAPIView, GetCeleryTaskAPIView
 from rest_framework.routers import DefaultRouter
 from .views import ProductInfoViewSet, ProductViewSet, ProductListViewSet, CategoriesViewSet, ShopsViewSet, OrdersViewSet, ContactAPIView
 
 router = DefaultRouter()
 router.register('all_offers', ProductInfoViewSet) #вывод всей базы-прайса всех магазинов без привязки к одному продукту
-router.register('products', ProductViewSet)
 router.register('categories', CategoriesViewSet)
 router.register('shops', ShopsViewSet)
 router.register('orders', OrdersViewSet)
@@ -22,7 +21,9 @@ urlpatterns = [
     path('products/', ProductListViewSet.as_view({'get': 'list'})),
     path('products/<int:pk>/', ProductViewSet.as_view({'get': 'list'})),
     path('partner/update/', PartnerUpdateAPIView.as_view()),
+    path('partner/update/<str:task_id>/', PartnerUpdateAPIView.as_view()),
     path('partner/orders/', PartnerOrdersViewSet.as_view({'get': 'list'})),
     path('partner/state/', PartnerStateAPIView.as_view()),
     path('basket/', OrderItemAPIView.as_view()),
+    path('task/<str:task_id>/', GetCeleryTaskAPIView.as_view()),
 ] + router.urls

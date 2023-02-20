@@ -1,8 +1,5 @@
 from backend.models import *
 
-from django.core.validators import URLValidator
-from django.core.exceptions import ValidationError
-
 from rest_framework import status, mixins
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,14 +10,13 @@ from .serializers import LoginSerializer, RegistrationSerializer, UserSerializer
     UserPasswordResetConfirmSerializer, ProductListSerializer, ProductInfoSerializer,\
     ProductInfoAllOffersSerializer, CategoriesSerializer, ShopsSerializer, OrderItemSerializer, OrderItemPUTSerializer,\
     ContactSerializer, OrderLiteSerializer, OrderSerializer, RegistrationConfirmSerializer, PartnerOrdersSerializer,\
-    PartnerStateSerializer
+    PartnerStateSerializer, PartnerUpdateSerializer
 
 from django.core.mail import send_mail, BadHeaderError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from .forms import PasswordResetForm, PasswordChangeForm, CustomUserCreationForm
 from django.conf import settings
-
 import jwt
 import requests
 
@@ -34,7 +30,9 @@ from .ordering import ProductOrdering
 from django.db.models import Prefetch
 import json
 import yaml
-import pprint
+
+from .tasks import do_import, get_task, send_email #Celery tasks
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 # Create your views here.
 def index(request):
@@ -42,6 +40,9 @@ def index(request):
     return render(request, 'index.html')
 
 def AccountsRegistration(request):
+    """
+    Страница регистрации.
+    """
     if request.method == 'GET':
         form = CustomUserCreationForm()
     elif request.method == 'POST':
@@ -65,6 +66,9 @@ def AccountsRegistration(request):
     return render(request, "registration/registration.html", {'form': form})
 
 def AccountsRegistrationConfirm(request):
+    """
+    Страница подтверждения регистрации.
+    """
     token = request.GET.get('token', None)
     if token is None:
         return HttpResponse('В запросе для подтверждения почты нет параметра /?token=...')
@@ -90,12 +94,21 @@ def AccountsRegistrationConfirm(request):
         return redirect('registration_complete')
 
 def AccountsRegistrationDone(request):
+    """
+    Страница с сообщением отправки письма на почту для подтверждения регистрации.
+    """
     return render(request, "registration/registration_done.html")
 
 def AccountsRegistrationComplete(request):
+    """
+    Страница с сообщением об успешной регистрации (с подтверджденным по почте аккаунтом).
+    """
     return render(request, "registration/registration_complete.html")
 
 def AccountsPasswordReset(request):
+    """
+    Страница восстановления пароля.
+    """
     # если метод GET, вернем форму
     if request.method == 'GET':
         form = PasswordResetForm()
@@ -120,9 +133,15 @@ def AccountsPasswordReset(request):
     return render(request, "registration/password_reset_form.html", {'form': form})
 
 def AccountsPasswordResetDone(request):
+    """
+    Страница после отправки письма для изменения пароля на почту.
+    """
     return render(request, 'registration/password_reset_done.html')
 
 def AccountsPasswordResetChange(request):
+    """
+    Страница для подтверждения восстановления пароля по jwt-токену, а также для ввода нового пароля.
+    """
     token = request.GET.get('token', None)
     if token is None:
         return HttpResponse('В запросе для изменения пароля нет параметра /?token=...')
@@ -157,41 +176,52 @@ def AccountsPasswordResetChange(request):
         return render(request, "registration/password_reset_change.html", {'form': form})
 
 def AccountsPasswordResetComplete(request):
+    """
+    Страница с сообщением об успешном изменении пароля.
+    """
     return render(request, 'registration/password_reset_complete.html')
 
 class RegistrationAPIView(APIView):
     """
-    Разрешить всем пользователям (аутентифицированным и нет) доступ к данному эндпоинту.
+    Регистрация нового пользователя.
     """
-    permission_classes = (AllowAny,)
+    permission_classes = (AllowAny,) #Разрешить всем пользователям (аутентифицированным и нет) доступ к данному эндпоинту.
     serializer_class = RegistrationSerializer
     def post(self, request):
+        """
+        POST запрос ...api/v1/user/register/
+        Письмо для подтверждения регистрации будет отправлено на указанный email.
+        """
         data = request.data
         # Паттерн создания сериализатора, валидации и сохранения. Часто встречается.
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save() #user.email_confirmed = False
 
         user = User.objects.filter(email=data.get('email')).first()
         msg = f'Токен для подтверждения регистрации по API:'
         msg += f'\n\n{user.token_email_confirm}\n\n'
-        try:
-            send_mail(f'{user.email}', msg, settings.EMAIL_HOST_USER, [user.email])
-        except BadHeaderError:
-            return JsonResponse({'error': 'Ошибка в теме письма.'},
-                                status=status.HTTP_451_UNAVAILABLE_FOR_LEGAL_REASONS)
-
-        return JsonResponse({'status': 'Письмо для подтверждения отправлено на указанную почту.',
+        task = send_email.delay(msg=msg, to=[user.email], header='Регистрация Netology homework')
+        return JsonResponse({'status': f'Письмо для подтверждения будет отправлено на указанную почту. '
+                                       f'Id задачи отправки письма: {task.id} '
+                                       f'Для проверки задачи можете перейдите по ссылке: '
+                                       f'{request.scheme}://{request.META["HTTP_HOST"]}/api/v1/task/{task.id}/ ',
                              'user': serializer.data}, status=status.HTTP_201_CREATED)
 
 class RegistrationConfirmAPIView(APIView):
     """
-    Разрешить всем пользователям (аутентифицированным и нет) доступ к данному эндпоинту.
+    Подтверждение регистрации по jwt-токену, который был отправлен на почту.
     """
     permission_classes = (AllowAny,)
     serializer_class = RegistrationConfirmSerializer
 
     def post(self, request):
+        """
+        POST запрос ...api/v1/user/register/confirm/
+        1. Декодировка указанного поля token.
+        2. Определение id пользователя.
+        3. Установление user.email_confirmed=True
+        """
         data = request.data
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
@@ -199,10 +229,17 @@ class RegistrationConfirmAPIView(APIView):
         return JsonResponse({'status': 'Почта успешно подтверждена.'}, status=status.HTTP_200_OK)
 
 class LoginAPIView(APIView):
+    """
+    Логин по email и password.
+    """
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
 
     def post(self, request):
+        """
+        POST запрос ...api/v1/user/login/
+        Получение jwt-токена по паре значений email и password для последующих авторизаций.
+        """
         data = request.data
         # Не вызываем метод save() сериализатора, как
         # делали это для регистрации. Дело в том, что в данном случае нам
@@ -213,10 +250,17 @@ class LoginAPIView(APIView):
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
 
 class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
+    """
+    Класс для просмотра и изменения своего пользователя.
+    """
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
 
     def retrieve(self, request, *args, **kwargs):
+        """
+        GET запрос ...api/v1/user/details/
+        Просмотр своего пользователя через авторизацию по токену.
+        """
         # Здесь нечего валидировать или сохранять. Мы просто хотим, чтобы
         # сериализатор обрабатывал преобразования объекта User во что-то, что
         # можно привести к json и вернуть клиенту.
@@ -225,6 +269,10 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
+        """
+        PATCH запрос ...api/v1/user/details/
+        Изменение параметров пользователя. Авторизация по токену.
+        """
         serializer_data = request.data
 
         # Паттерн сериализации, валидирования и сохранения
@@ -237,9 +285,16 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
 
 class UserPasswordResetAPIView(APIView):
+    """
+    Класс для восстановления пароля.
+    """
     permission_classes = (AllowAny,)
     serializer_class = UserPasswordResetSerializer
     def post(self, request):
+        """
+        POST запрос ...api/v1/user/password/reset/
+        Отправка письма с jwt-токеном на почту для подтверждения.
+        """
         data = request.data
         # Не вызываем метод save() сериализатора, как
         # делали это для регистрации. Дело в том, что в данном случае нам
@@ -251,19 +306,27 @@ class UserPasswordResetAPIView(APIView):
         msg = f'Токен для восстановления пароля {user_email} по API:'
         msg += f'\n\n{token}\n\n'
         msg += f"Либо перейдите по ссылке:\n{request.scheme}://{request.META['HTTP_HOST']}/accounts/password/reset/change/?token={token}"
-        try:
-            send_mail(f'{user_email}', msg, settings.EMAIL_HOST_USER, [user_email])
-        except BadHeaderError:
-            return JsonResponse({'error': 'Ошибка в теме письма.'}, status=status.HTTP_451_UNAVAILABLE_FOR_LEGAL_REASONS)
-
-
-        return JsonResponse({'status': 'Письмо для восстановления пароля успешно отправлено на указанную почту.'}, status=status.HTTP_200_OK)
+        task = send_email.delay(msg=msg, to=[user_email], header='Восстановление пароля Netology homework')
+        return JsonResponse({'status': f'Письмо для восстановления пароля будет отправлено на указанную почту. '
+                                       f'Id задачи отправки письма: {task.id} '
+                                       f'Для проверки задачи можете перейдите по ссылке: '
+                                       f'{request.scheme}://{request.META["HTTP_HOST"]}/api/v1/task/{task.id}/ ',
+                             }, status=status.HTTP_200_OK)
 
 
 class UserPasswordResetConfirmAPIView(APIView):
+    """
+    Класс для подтверждения восстановления пароля и указания нового.
+    """
     permission_classes = (AllowAny,)
     serializer_class = UserPasswordResetConfirmSerializer
     def post(self, request):
+        """
+        POST запрос ...api/v1/user/password/reset/confirm/
+        1. Указанному jwt-токен проходит декодирование.
+        2. Определяется id пользователя.
+        3. Пользователю с данным id устанавливается указанный password.
+        """
         data = request.data
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
@@ -275,69 +338,60 @@ class UserPasswordResetConfirmAPIView(APIView):
 class PartnerUpdateAPIView(APIView):
     """
     Класс для:
-    1. Обновления прайса от поставщика ...api/v1/partner/update/ POST.
-    2. Удаления всего прайса ...api/v1/partner/update/ DELETE.
+    1. Обновления прайса от поставщика, получения id celery-задачи ...api/v1/partner/update/ POST.
+    2. Получения статуса обновления прайса по id celery-задачи ...api/v1/partner/update/<task_id>/ GET.
+    3. Удаления всего прайса ...api/v1/partner/update/ DELETE.
     """
     permission_classes = (IsAuthenticated,)
+    serializer_class = PartnerUpdateSerializer
     def post(self, request, *args, **kwargs):
+        """
+        POST запрос ...api/v1/partner/update/
+        Обновление прайса от поставщика, получение id celery-задачи. Авторизация по токену.
+        """
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        response = requests.get(serializer.data['url'] )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            # Whoops it wasn't a 200
+            return JsonResponse({'Status': False, 'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        task = do_import.delay(response.text, request.user.email)
+        return JsonResponse({'Status': f'Id задачи обновления прайса: {task.id} '
+                                       f'Для проверки задачи сделайте аутентифицированный get запрос: '
+                                       f'{request.scheme}://{request.META["HTTP_HOST"]}/api/v1/partner/update/{task.id}/ ',
+                             }, status=status.HTTP_200_OK)
 
-        url = request.data.get('url')
-        if url:
-            validate_url = URLValidator()
-            try:
-                validate_url(url)
-            except ValidationError as e:
-                return JsonResponse({'Status': False, 'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, task_id, *args, **kwargs):
+        """
+        GET запрос ...api/v1/partner/update/<task_id>/
+        Получение статуса обновления прайса по id celery-задачи. Авторизация по токену.
+        """
+        task_id = self.kwargs.get('task_id', None)
+        if not task_id:
+            return JsonResponse({'Status': False, 'Errors': f'Не указан id задачи ...api/v1/partner/update/<task_id>/'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        task = get_task(task_id)
+        if isinstance(task.result, tuple):
+            if task.result[0] == request.user.email:
+                return JsonResponse({'Status': task.status,
+                                     'Result': task.result[1]}, status=status.HTTP_200_OK)
             else:
-                response = requests.get(url)
-                try:
-                    response.raise_for_status()
-                except requests.exceptions.HTTPError as e:
-                    # Whoops it wasn't a 200
-                    return JsonResponse({'Status': False, 'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                data = yaml.safe_load(response.text)
-                try:
-                    #созданём магазин пользователя, если не было
-                    shop, _ = Shop.objects.get_or_create(name=data['shop'], user_id=request.user) #shop необходимое unique значение, иначе KeyError. shop <-> user отношение 1к1, тем самым пользователь может создать или изменить только один свой магазин (чтобы под одним email был один магазин)
-                    #созданём категории магазина, если таких не было
-                    for category in data['categories']: #categories необходимое значение, иначе KeyError.
-                        category_object, _ = Category.objects.get_or_create(
-                            name=category['name'], #name необходимое unique значение, иначе KeyError
-                            defaults={'id': category.get('id')} #так как name категории сам по себе уникален, в передаче id нет большого смысла. Если такой категории не существует, defaults создаст её с указанным id (если id в этом случае не указано, то category.get('id') вернет None)
-                        )
-                        category_object.save() #You can’t associate it until it’s been saved
-                        category_object.shops.add(shop) #Adding a second time is OK, it will not duplicate the relation
-                    old_offers = ProductInfo.objects.select_related('product_id').filter(shop_id=shop.id)
-                    old_offers.update(is_active=False) #Отчистка всей базы-прайса магазина перед пересозданием
-                    for old_offer in old_offers:
-                        old_offer.product_id.check_actual() #Если по продукту нет больше предложений, то product_obj.is_active = False
-                    for item in data['goods']: #goods необходимое значение, иначе KeyError. Нет смысла указывать только категории магазина, если в них нет продуктов.
-                        #созданём продукты, если таких не было
-                        product, _ = Product.objects.get_or_create(name=item['name'], category_id=Category(id=item['category'])) #name и category необходимые значение, иначе KeyError.     category_id= требует не id а instance https://code.djangoproject.com/ticket/13915
-                        #созданём базу-прайс магазина
-                        product_info = ProductInfo.objects.create(product_id=product, #требуется не id, а instance https://code.djangoproject.com/ticket/13915
-                                                                  external_id=item['id'], #blank=False необходимое значение, иначе KeyError
-                                                                  model=item.get('model'),#blank=True  default=None
-                                                                  price=item['price'],#blank=False необходимое значение, иначе KeyError
-                                                                  price_rrc=item['price_rrc'], #blank=False необходимое значение, иначе KeyError
-                                                                  quantity=item['quantity'], #blank=False необходимое значение, иначе KeyError
-                                                                  shop_id=shop)
-                        product.is_active = True #включаем продукт, так как по нему появилось предложение
-                        product.save()
-                        if item.get('parameters'): #делаем возможность не указывать параметры продукта
-                            for name, value in item['parameters'].items():
-                                parameter_object, _ = Parameter.objects.get_or_create(name=name) #созданём тип параметра, если в базе такого нет
-                                ProductParameter.objects.create(product_info_id=product_info,
-                                                                parameter_id=parameter_object,
-                                                                value=value) #value необходимое значение, иначе KeyError
-                    return JsonResponse({'Status': 'Весь прайс успешно обновлен.'}, status=status.HTTP_200_OK)
-                except (KeyError, Exception) as e:
-                    return JsonResponse({'Status': False, 'Error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return JsonResponse({'Status': False, 'Error': 'Не указаны все необходимые аргументы'}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({'Status': False,
+                                     'Error': 'Эта задача не от вашего имени.'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return JsonResponse({'Status': task.status,
+                                 'Result': task.result}, status=status.HTTP_200_OK)
+
 
     def delete(self, request, *args, **kwargs):
+        """
+        DELETE запрос ...api/v1/partner/update/
+        Удаления всего прайса. Авторизация по токену.
+        """
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         shop = Shop.objects.prefetch_related("product_info__product_id").filter(user_id__id=request.user.id).first()
@@ -349,19 +403,21 @@ class PartnerUpdateAPIView(APIView):
             result = old_offers.update(is_active=False)  # Отчистка всей базы-прайса магазина перед пересозданием
             for old_offer in old_offers:
                 old_offer.product_id.check_actual()  # Если по продукту нет больше предложений, то product_obj.is_active = False
-            return JsonResponse({'Status': f'Все предложения по товарам вашего магазина {shop.name} сняты.'
-                                       f' (Количество снятых товаров: {result})'}, status=status.HTTP_200_OK)
+            return JsonResponse({'Status': f'Все предложения по товарам вашего магазина {shop.name} сняты. '
+                                       f'(Количество снятых товаров: {result})'}, status=status.HTTP_200_OK)
         return JsonResponse({'Status': f'Ваш прайс уже пуст.'}, status=status.HTTP_200_OK)
 
 
 class ProductInfoViewSet(viewsets.ReadOnlyModelViewSet):
     """
-        Вывод всей базы-прайса всех магазинов без привязки к одному продукту.
-        Фильтрация (по параметрам: 'name', 'model', 'external_id', 'product_id', 'shop_id', 'shop', 'created_[after,before]',
-        'updated_[after,before]', 'price_[min,max]', 'category', 'category_id').
-        Т.е. в отличие от класса ProductViewSet можно выставить поиск, например, только для определённого магазина.
-        Поставщик может видеть свои предложения (?shop_id=1)(?shop=связной),
-        и контролировать остаток quantity по ним (?ordering=quantity).
+    Класс для:
+    1. Вывода всей базы-прайса всех магазинов без привязки к одному продукту.
+    Фильтрация (по параметрам: 'name', 'model', 'external_id', 'product_id', 'shop_id', 'shop', 'created_[after,before]',
+    'updated_[after,before]', 'price_[min,max]', 'category', 'category_id').
+    Т.е. в отличие от класса ProductViewSet можно выставить поиск, например, только для определённого магазина.
+    Поставщик может видеть свои предложения (?shop_id=1)(?shop=связной),
+    и контролировать остаток quantity по ним (?ordering=quantity).
+    2. Просмотра предложения по его id ...api/v1/all_offers/<pk>/ GET
     """
     permission_classes = (AllowAny,)
     queryset = ProductInfo.objects.filter(is_active=True, shop_id__is_active=True)
@@ -372,6 +428,10 @@ class ProductInfoViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ['price', 'created_at', 'quantity', 'updated_at', 'external_id']
     ordering = ['-created_at']
     def list(self, request, *args, **kwargs):  #переопределение метода list для удаления повторяющихся продуктов при поиске
+        """
+        GET запрос ...api/v1/all_offers/
+        Вывод предложений по всем товарам.
+        """
         queryset = self.filter_queryset(self.get_queryset()).distinct() # .distinct() удаление повторяющихся продуктов при поиске
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -384,10 +444,10 @@ class ProductInfoViewSet(viewsets.ReadOnlyModelViewSet):
 class ProductListViewSet(mixins.ListModelMixin,
                      viewsets.GenericViewSet):
     """
-        Класс для:
-        1. Просмотра всех товаров .../api/v1/products/ GET.
-        Фильтрация (по параметрам: 'name', 'category', 'category_id', 'price_[min,max]', 'created_[after,before]',
-        'updated_[after,before]', 'model', 'shop_id', 'shop').
+    Класс для:
+    1. Просмотра всех товаров .../api/v1/products/ GET.
+    Фильтрация (по параметрам: 'name', 'category', 'category_id', 'price_[min,max]', 'created_[after,before]',
+    'updated_[after,before]', 'model', 'shop_id', 'shop').
     """
     permission_classes = (AllowAny,)
     queryset = Product.objects.filter(is_active=True).prefetch_related(
@@ -405,6 +465,10 @@ class ProductListViewSet(mixins.ListModelMixin,
     ordering = ['-name']
 
     def list(self, request, *args, **kwargs):  #переопределение метода list для удаления повторяющихся продуктов при поиске
+        """
+        GET запрос .../api/v1/products/
+        Просмотр всех товаров.
+        """
         queryset = self.filter_queryset(self.get_queryset()).distinct() # .distinct() удаление повторяющихся продуктов при поиске
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -418,10 +482,10 @@ class ProductListViewSet(mixins.ListModelMixin,
 class ProductViewSet(mixins.RetrieveModelMixin,
                      viewsets.GenericViewSet):
     """
-        Класс для:
-        1. Просмотра всех предложений по определенному товару .../api/v1/products/<pk>/ GET.
-        Фильтрация (по параметрам: 'created_[after,before]', 'updated_[after,before]', 'price_[min,max]',
-        'external_id', 'shop_id', 'shop').
+    Класс для:
+    1. Просмотра всех предложений по определенному товару .../api/v1/products/<pk>/ GET.
+    Фильтрация (по параметрам: 'created_[after,before]', 'updated_[after,before]', 'price_[min,max]',
+    'external_id', 'shop_id', 'shop').
     """
     permission_classes = (AllowAny,)
     queryset = ProductInfo.objects.filter(is_active=True, shop_id__is_active=True)
@@ -431,6 +495,10 @@ class ProductViewSet(mixins.RetrieveModelMixin,
     ordering_fields = ['price', 'created_at'],
     ordering = ['-created_at']
     def list(self, request, *args, **kwargs):
+        """
+        GET запрос .../api/v1/products/<pk>/
+        Просмотр предложений по конкретному товару.
+        """
         pk=self.kwargs.get('pk')
         try:
             product = Product.objects.select_related("category_id").get(id=pk)
@@ -452,9 +520,9 @@ class ProductViewSet(mixins.RetrieveModelMixin,
 
 class CategoriesViewSet(viewsets.ReadOnlyModelViewSet):
     """
-        Класс для:
-        1. Просмотра всех категорий. .../api/v1/categories/ GET.
-        2. Просмотра определенной категории. .../api/v1/categories/<pk>/ GET.
+    Класс для:
+    1. Просмотра всех категорий. .../api/v1/categories/ GET.
+    2. Просмотра определенной категории. .../api/v1/categories/<pk>/ GET.
     """
     permission_classes = (AllowAny,)
     queryset = Category.objects.filter(is_active=True) #отображаем только is_active категории
@@ -464,9 +532,9 @@ class CategoriesViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ShopsViewSet(viewsets.ReadOnlyModelViewSet):
     """
-        Класс для:
-        1. Просмотра всех магазинов. .../api/v1/shops/ GET.
-        2. Просмотра определенного магазина. .../api/v1/shops/<pk>/ GET.
+    Класс для:
+    1. Просмотра всех магазинов. .../api/v1/shops/ GET.
+    2. Просмотра определенного магазина. .../api/v1/shops/<pk>/ GET.
     """
     permission_classes = (AllowAny,)
     queryset = Shop.objects.filter(is_active=True) #отображаем только is_active магазины
@@ -476,16 +544,24 @@ class ShopsViewSet(viewsets.ReadOnlyModelViewSet):
 
 class OrderItemAPIView(APIView):
     """
-        Класс для:
-        1. Добавления товара в корзину .../api/v1/basket/  POST.
-        2. Просмотра козины .../api/v1/basket/  GET.
-        3. Редактирования количества товара в корзине .../api/v1/basket/  PUT.
-        4. Удаления товара из корзины .../api/v1/basket/  DELETE.
+    Класс для:
+    1. Добавления товара в корзину .../api/v1/basket/  POST.
+    2. Просмотра козины .../api/v1/basket/  GET.
+    3. Редактирования количества товара в корзине .../api/v1/basket/  PUT.
+    4. Удаления товара из корзины .../api/v1/basket/  DELETE.
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = OrderItemSerializer
 
     def post(self, request):
+        """
+        POST запрос .../api/v1/basket/
+        Добавление товара в корзину. Авторизация по токену.
+        {
+            "items":[{ "product_info_id":  1,
+                       "quantity": 1         }]
+        }
+        """
         items = request.data.get('items', None)
         if items:
             # Паттерн создания сериализатора, валидации и сохранения. Часто встречается.
@@ -497,6 +573,10 @@ class OrderItemAPIView(APIView):
         return JsonResponse({'items': serializer.data}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
+        """
+        GET запрос .../api/v1/basket/
+        Просмотр корзины. Авторизация по токену.
+        """
         queryset = OrderItem.objects.select_related('order_id__user_id', 'product_info_id').filter(
             order_id__user_id__id=request.user.id,
             order_id__status='basket')
@@ -510,6 +590,11 @@ class OrderItemAPIView(APIView):
             return JsonResponse({'Status': 'Ваша корзина в данный момент пуста.'}, status=status.HTTP_200_OK)
 
     def delete(self, request):
+        """
+        DELETE запрос .../api/v1/basket/
+        Удаление товара из корзины. Авторизация по токену.
+        items = '92,93,94'
+        """
         items = request.data.get('items', None)# items = '92,93,94'
         if not items:
             return JsonResponse({'Status': False, 'Errors': 'Не указано поле items.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -521,6 +606,13 @@ class OrderItemAPIView(APIView):
         return JsonResponse({'Status': f'Успешно удалено позиций из корзины: {result[0]}'}, status=status.HTTP_200_OK)
 
     def put(self, request):
+        """
+        PUT запрос .../api/v1/basket/
+        Редактирование количества товара в корзине. Авторизация по токену.
+        {
+            "items": [{"id": 39, "quantity": 2}]
+        }
+        """
         items = request.data.get('items', None)
         if items:
             # Паттерн создания сериализатора, валидации и сохранения. Часто встречается.
@@ -534,16 +626,20 @@ class OrderItemAPIView(APIView):
 
 class ContactAPIView(APIView):
     """
-        Класс для:
-        1. Создания контакта для аутентифицированного пользователя. .../api/v1/user/contact/ POST.
-        2. Просмотра всех контактов аутентифицированного пользователя. .../api/v1/user/contact/ GET.
-        3. Редактирования контакта пользователя с указанием id в body. .../api/v1/user/contact/ PATCH.
-        4. Удаления контактов пользователя с указанием в items = 2,3,4 в body. .../api/v1/user/contact/ DELETE.
+    Класс для:
+    1. Создания контакта для аутентифицированного пользователя. .../api/v1/user/contact/ POST.
+    2. Просмотра всех контактов аутентифицированного пользователя. .../api/v1/user/contact/ GET.
+    3. Редактирования контакта пользователя с указанием id в body. .../api/v1/user/contact/ PATCH.
+    4. Удаления контактов пользователя с указанием в items = 2,3,4 в body. .../api/v1/user/contact/ DELETE.
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = ContactSerializer
 
     def post(self, request):
+        """
+        POST запрос .../api/v1/user/contact/
+        Создание контакта для аутентифицированного пользователя. Авторизация по токену.
+        """
         # Паттерн создания сериализатора, валидации и сохранения. Часто встречается.
         serializer = self.serializer_class(data=request.data, context={'request': request}) # передача request для определения id пользователя
         serializer.is_valid(raise_exception=True)
@@ -551,6 +647,10 @@ class ContactAPIView(APIView):
         return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
 
     def get(self, request):
+        """
+        GET запрос .../api/v1/user/contact/
+        Создание контакта для пользователя. Авторизация по токену.
+        """
         queryset = Contact.objects.filter(user_id__id=request.user.id, is_active=True)
         if queryset:
             serializer = self.serializer_class(queryset, many=True)
@@ -559,6 +659,10 @@ class ContactAPIView(APIView):
             return JsonResponse({'Status': 'У вас пока нет контактов.'}, status=status.HTTP_200_OK)
 
     def patch(self, request): #метод PUT не реализован. PUT создает ресурс, если он не существует. так как пользователь бы задавал id и для создания контакта, а id определяет БД (оно может быть занято). Либо в будущем можно добавить в БД ещё одно поле "красивых"(а не общих) id
+        """
+        PATCH запрос .../api/v1/user/contact/
+        Редактирование контакта пользователя с указанием id в body. Авторизация по токену.
+        """
         contact_id = request.data.get('id', None)
         if not contact_id:
             return JsonResponse({'Status': False, 'Errors': 'Не указано поле id.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -572,6 +676,11 @@ class ContactAPIView(APIView):
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request):
+        """
+        DELETE запрос .../api/v1/user/contact/
+        Удаление контактов пользователя с указанием в items в body. Авторизация по токену.
+        items = '2,3,4'
+        """
         items = request.data.get('items', None) #items = '92,93,94'
         if not items:
             return JsonResponse({'Status': False, 'Errors': 'Не указано поле items.'})
@@ -585,18 +694,25 @@ class OrdersViewSet(mixins.CreateModelMixin,
                    mixins.ListModelMixin,
                    viewsets.GenericViewSet):
     """
-        Класс для:
-        1. Размещения заказа из корзины (смена статуса объекта Order с basket на new,
-        корректировки quantity предложений на величины соответствующих позиций в заказе,
-        отправки писем на email'ы покупателя и администратора). .../api/v1/orders/  POST.
-        2. Просмотра определенного заказа по id .../api/v1/orders/<pk>/  GET.
-        3. Просмотра всех сформированных заказов пользователя .../api/v1/orders/  GET.
+    Класс для:
+    1. Размещения заказа из корзины (смена статуса объекта Order с basket на new,
+    корректировки quantity предложений на величины соответствующих позиций в заказе,
+    отправки писем на email'ы покупателя и администратора). .../api/v1/orders/  POST.
+    2. Просмотра определенного заказа по id .../api/v1/orders/<pk>/  GET.
+    3. Просмотра всех сформированных заказов пользователя .../api/v1/orders/  GET.
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = OrderSerializer
     queryset = Order.objects.select_related('user_id', 'contact_id')
 
     def create(self, request, *args, **kwargs):
+        """
+        POST запрос .../api/v1/orders/
+        Размещение заказа из корзины (смена статуса объекта Order с basket на new,
+        корректировка quantity предложений на величины соответствующих позиций в заказе,
+        отправка писем на email'ы покупателя и администратора).
+        Авторизация по токену.
+        """
         # Паттерн создания сериализатора, валидации и сохранения. Часто встречается.
         serializer = self.serializer_class(data=request.data, context = {'request':request}) #передача request для определения id пользователя
         serializer.is_valid(raise_exception=True)
@@ -609,28 +725,29 @@ class OrdersViewSet(mixins.CreateModelMixin,
         msg += f'Статуc заказов вы можете посмотреть в разделе "Заказы"\n'
         #msg += pprint.pformat({'order': serializer.data}, indent=4)
         msg += yaml.dump(json.loads(json.dumps({'order': serializer.data})), allow_unicode=True)  #сначала в json, из-за OrderedDict
-        try:
-            send_mail('Спасибо за заказ', msg, settings.EMAIL_HOST_USER, [user_email])
-        except BadHeaderError:
-            return JsonResponse({'error': 'Ошибка в теме письма.'}, status=status.HTTP_451_UNAVAILABLE_FOR_LEGAL_REASONS)
-
+        task1 = send_email.delay(msg=msg, to=[user_email], header='Спасибо за заказ Netology homework')
         # Отправка накладной администратору
-        user_email = request.user.email
         msg = f'Новый заказ {serializer.data["id"]}'
         msg += f'\nПокупатель {user_email} {request.user.full_name}\n'
         # msg += pprint.pformat({'order': serializer.data}, indent=4)
         msg += yaml.dump(json.loads(json.dumps({'order': serializer.data})), allow_unicode=True)  #сначала в json, из-за OrderedDict
-        try:
-            send_mail(f'Новый заказ {serializer.data["id"]}', msg, settings.EMAIL_HOST_USER, settings.RECIPIENTS_EMAIL)
-        except BadHeaderError:
-            return JsonResponse({'error': 'Ошибка в теме письма.'},
-                                status=status.HTTP_451_UNAVAILABLE_FOR_LEGAL_REASONS)
-
-        return JsonResponse({'Status': 'Спасибо за заказ. На Вашу почту отправлено письмо. '
-                                       'Наш оператор свяжется с вами в ближайшее время для уточнения делатей заказа.',
+        header = f'Новый заказ {serializer.data["id"]}'
+        task2 = send_email.delay(msg=msg, to=settings.RECIPIENTS_EMAIL, header=header)
+        return JsonResponse({'Status': f'Спасибо за заказ. На Вашу почту будет отправлено письмо. '                                       
+                                       f'Наш оператор свяжется с вами в ближайшее время для уточнения делатей заказа. '
+                                       f'Id задачи отправки письма покупателю: {task1.id} '
+                                       f'Для проверки задачи можете перейдите по ссылке: '
+                                       f'{request.scheme}://{request.META["HTTP_HOST"]}/api/v1/task/{task1.id}/ '
+                                       f'Id задачи отправки письма менеджеру: {task2.id} '
+                                       f'Для проверки задачи можете перейдите по ссылке: '
+                                       f'{request.scheme}://{request.META["HTTP_HOST"]}/api/v1/task/{task2.id}/ ',
                              'order': serializer.data}, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
+        """
+        GET запрос .../api/v1/orders/
+        Просмотр всех сформированных заказов пользователя. Авторизация по токену.
+        """
         queryset = self.queryset.filter(user_id__id=request.user.id, status__in=['new',
                                                                                  'confirmed',
                                                                                  'assembled',
@@ -644,6 +761,10 @@ class OrdersViewSet(mixins.CreateModelMixin,
             return JsonResponse({'Status': 'У вас пока нет заказов.'}, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
+        """
+        GET запрос .../api/v1/orders/<pk>/
+        Просмотра определенного заказа по id. Авторизация по токену.
+        """
         order = self.queryset.filter(id=self.kwargs['pk'], user_id__id=request.user.id, status__in=['new',     #без корзины
                                                                                                     'confirmed',
                                                                                                     'assembled',
@@ -658,9 +779,9 @@ class OrdersViewSet(mixins.CreateModelMixin,
 class PartnerOrdersViewSet(mixins.ListModelMixin,
                            viewsets.GenericViewSet):
     """
-        Класс для просмотра поставщиком сформированных заказов с его товарами  .../api/v1/partner/orders/ GET.
-        Фильтрация (по параметрам: 'id', 'user_email', 'status', 'created_[after,before]', 'updated_[after,before]',
-        'phone', 'city', 'street', 'house', 'product', 'model')
+    Класс для просмотра поставщиком сформированных заказов с его товарами  .../api/v1/partner/orders/ GET.
+    Фильтрация (по параметрам: 'id', 'user_email', 'status', 'created_[after,before]', 'updated_[after,before]',
+    'phone', 'city', 'street', 'house', 'product', 'model')
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = PartnerOrdersSerializer
@@ -670,6 +791,10 @@ class PartnerOrdersViewSet(mixins.ListModelMixin,
     ordering_fields = ['status', 'created_at', 'updated_at', 'id'],
     ordering = ['-updated_at']
     def list(self, request, *args, **kwargs):
+        """
+        GET запрос .../api/v1/partner/orders/ [ ?status=new ]
+        Просмотр поставщиком сформированных заказов с его товарами. Авторизация по токену.
+        """
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         shop = Shop.objects.filter(user_id__id=request.user.id).first()
@@ -700,13 +825,18 @@ class PartnerOrdersViewSet(mixins.ListModelMixin,
 
 class PartnerStateAPIView(APIView):
     """
-        Класс для:
-        1. Включения и отключения приема заказов магазина поставщика .../api/v1/partner/state/ POST.
-        2. Просмотра статуса отключения приема заказов магазина поставщика .../api/v1/partner/state/ GET.
+    Класс для:
+    1. Включения и отключения приема заказов магазина поставщика .../api/v1/partner/state/ POST.
+    2. Просмотра статуса отключения приема заказов магазина поставщика .../api/v1/partner/state/ GET.
     """
     permission_classes = (IsAuthenticated,)
     serializer_class = PartnerStateSerializer
     def post(self, request, *args, **kwargs):
+        """
+        POST запрос .../api/v1/partner/state/
+        Включение и отключение приема заказов магазина поставщика. Авторизация по токену.
+        state = on [или off]
+        """
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         shop = Shop.objects.prefetch_related("product_info__product_id").filter(user_id__id=request.user.id).first()
@@ -730,6 +860,10 @@ class PartnerStateAPIView(APIView):
         return JsonResponse({'Status': msg}, status=status.HTTP_200_OK)
 
     def get(self, request, *args, **kwargs):
+        """
+        GET запрос .../api/v1/partner/state/
+        Просмотр статуса отключения приема заказов магазина поставщика. Авторизация по токену.
+        """
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
         shop = Shop.objects.filter(user_id__id=request.user.id).first()
@@ -741,4 +875,34 @@ class PartnerStateAPIView(APIView):
         else:
             return JsonResponse({'Status': f'Приём заказов вашего магазина {shop.name} отключен.'}, status=status.HTTP_200_OK)
 
+@extend_schema(responses=None)
+class GetCeleryTaskAPIView(APIView):
+    """
+    Класс для:
+    1. Получения статуса celery-задачи по id для неавторизованных пользователей ...api/v1/task/<task_id>/ GET.
+    Например, для проверки статуса отправки письма подтверждения при регистрации, или при восстановлении пароля
+    """
+    permission_classes = (AllowAny,)
+    def get(self, request, task_id, *args, **kwargs):
+        """
+        Класс для:
+        GET запрос ...api/v1/task/<task_id>/
+        Получения статуса celery-задачи по id.
+        """
+        task_id = self.kwargs.get('task_id', None)
+        if not task_id:
+            return JsonResponse({'Status': False, 'Errors': f'Не указан id задачи ...api/v1/partner/update/<task_id>/'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        task = get_task(task_id)
+        if isinstance(task.result, tuple):
+            if task.result[0] == 'allow any':
+                return JsonResponse({'Status': task.status,
+                                     'Result': task.result[1]}, status=status.HTTP_200_OK)
+            else:
+                # на случай если введен id задачи обновления прайса магазина, только магазин имеет доступ к результату
+                return JsonResponse({'Status': False,
+                                     'Error': 'Результат недоступен для неавторизованных пользователей.'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return JsonResponse({'Status': task.status,
+                                 'Result': task.result}, status=status.HTTP_200_OK)
 

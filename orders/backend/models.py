@@ -73,7 +73,6 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
     objects = UserManager()
-    username = None
     email = models.EmailField(_('email address'), db_index=True, max_length=255, unique=True)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
@@ -81,10 +80,9 @@ class User(AbstractUser):
     company = models.CharField(_('company'), max_length=40, blank=True)
     position = models.CharField(_('position'), max_length=40, blank=True)
     type = models.CharField(_('type of user'), choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
-    # Полe is_active при регистрации будет false, а после подтверждения email - true
     is_active = models.BooleanField(
         _('active'),
-        default=False,
+        default=True,
         help_text=_(
             'Designates whether this user should be treated as active. '
             'Unselect this instead of deleting accounts.'
@@ -94,11 +92,6 @@ class User(AbstractUser):
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     # Временная метка показывающая время последнего обновления объекта.
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-    # Служебное поле email_confirmed. Нужно, например, для проверки при повторной регистрации без подтверждения по email первой
-    # (или если кто-то указал до этого эту почту как не свою),
-    # так как поле is_active недостаточно для этой роли (оно может играть роль бана).
-    # Так как при регистрации сначала указываются все из доступных полей, а потом подтверждается email и
-    # is_active становится True, создаётся предварительная запись в БД пользователя с указанными в запросе полями.
     email_confirmed = models.BooleanField(_('email confirmed'), default=False)
 
     def __str__(self):
@@ -109,6 +102,10 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = "Список пользователей"
         ordering = ('email',)
+
+    @property
+    def username(self):
+        return self.email
 
     @property
     def token(self):
@@ -183,7 +180,7 @@ class User(AbstractUser):
 
 class Contact(models.Model):
     user_id = models.ForeignKey(User, verbose_name='Пользователь',
-                             related_name='contacts', blank=True,
+                             related_name='contacts', blank=True, null=True,
                              on_delete=models.CASCADE)
     city = models.CharField(max_length=50, verbose_name='Город', blank=True)
     street = models.CharField(max_length=100, verbose_name='Улица', blank=True)
@@ -254,7 +251,7 @@ class ShopCategory(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=80, verbose_name='Название')
-    category_id = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True,
+    category_id = models.ForeignKey(Category, verbose_name='Категория', related_name='products', blank=True, null=True,
                                  on_delete=models.CASCADE)
     is_active = models.BooleanField(_('active'), default=False) #для того, чтобы не удалять записи product_info, так как при их удалении удаляться и order_item'ы (не будут отображаться информация по позиции в архивных заказах)
 
@@ -375,11 +372,11 @@ class Order(models.Model):
         return items_price + self.cost_of_delivery
 
 class OrderItem(models.Model):
-    order_id = models.ForeignKey(Order, verbose_name='Заказ', related_name='ordered_items', blank=True,
+    order_id = models.ForeignKey(Order, verbose_name='Заказ', related_name='ordered_items', blank=True, null=True,
                               on_delete=models.CASCADE)
 
     product_info_id = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте', related_name='ordered_items',
-                                     blank=True,
+                                     blank=True, null=True,
                                      on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(verbose_name='Количество', default=1)
 

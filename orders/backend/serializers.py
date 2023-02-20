@@ -4,6 +4,7 @@ from .models import User, ProductInfo, ProductParameter, Product, Category, Shop
 from django.conf import settings
 import jwt
 import json
+from django.utils.translation import gettext_lazy as _
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -15,7 +16,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         min_length=8,
         write_only=True
     )
-    is_active = serializers.ReadOnlyField() #при регистрации поле будет false, а после подтверждения email true
+    is_active = serializers.ReadOnlyField()
     is_staff = serializers.ReadOnlyField() #при регистрации поле будет false
     email_confirmed = serializers.ReadOnlyField() #при регистрации поле будет false, а после подтверждения email true
     email = serializers.CharField(max_length=255)
@@ -116,15 +117,15 @@ class LoginSerializer(serializers.Serializer):
 
         # Вызвать исключение, если не предоставлена почта.
         if email is None:
-            raise serializers.ValidationError(
+            raise serializers.ValidationError(_(
                 'An email address is required to log in.'
-            )
+            ))
 
         # Вызвать исключение, если не предоставлен пароль.
         if password is None:
-            raise serializers.ValidationError(
+            raise serializers.ValidationError(_(
                 'A password is required to log in.'
-            )
+            ))
 
         # Метод authenticate предоставляется Django и выполняет проверку, что
         # предоставленные почта и пароль соответствуют какому-то пользователю в
@@ -135,17 +136,22 @@ class LoginSerializer(serializers.Serializer):
         # Если пользователь с данными почтой/паролем не найден, то authenticate
         # вернет None. Возбудить исключение в таком случае.
         if user is None:
-            raise serializers.ValidationError(
+            raise serializers.ValidationError(_(
                 'A user with this email and password was not found.'
-            )
+            ))
 
         # Django предоставляет флаг is_active для модели User. Его цель
         # сообщить, был ли пользователь деактивирован или заблокирован.
         # Проверить стоит, вызвать исключение в случае True.
         if not user.is_active:
-            raise serializers.ValidationError(
+            raise serializers.ValidationError(_(
                 'This user has been deactivated.'
-            )
+            ))
+
+        if not user.email_confirmed:
+            raise serializers.ValidationError(_(
+                'Email not verified. Please confirm your email.'
+            ))
 
         # Метод validate должен возвращать словать проверенных данных. Это
         # данные, которые передются в т.ч. в методы create и update.
@@ -605,3 +611,5 @@ class PartnerStateSerializer(serializers.ModelSerializer):
         model = Shop
         fields = ('state',)
 
+class PartnerUpdateSerializer(serializers.Serializer):
+    url = serializers.URLField() #default allow_null=False

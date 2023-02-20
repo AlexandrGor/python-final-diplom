@@ -1,0 +1,10 @@
+export SECRET_KEY_1='zq58!7x27(q&%^&7fry9qeawda+f*zmv$#tb-1c3xgv785&f*f'
+export POSTGRES_USER=admin
+export POSTGRES_PASSWORD=admin123
+export POSTGRES_DB=netology_diplom
+export PGDATA=/var/lib/postgresql/data/pgdata
+export EMAIL_PASSWORD=qyaebyjtrgbkzabt
+export CELERY_BROKER=redis://localhost:6379/1
+export CELERY_BACKEND=redis://localhost:6379/2
+export VK_ID=51559638
+export VK_SECRET_KEY=dKcQerh9YEgXHgVH9qcM

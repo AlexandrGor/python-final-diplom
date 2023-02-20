@@ -39,13 +39,40 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes', # Django контент-типовая система (даёт разрешения, связанные с моделями).
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.sites',
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
     'backend',
     'django_filters',
+    'drf_spectacular',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.vk', # Вконтакт
 ]
+
+SITE_ID = 3
+#./manage.py shell
+#from django.contrib.sites.models import Site
+#Site.objects.get(name='localhost').id
+#> 3
+
+
+# Provider specific settings
+SOCIALACCOUNT_PROVIDERS = {
+    'vk': {
+        # For each OAuth based provider, either add a ``SocialApp``
+        # (``socialaccount`` app) containing the required client
+        # credentials, or list them here:
+        'APP': {
+            'client_id': os.getenv('VK_ID'),
+            'secret': os.getenv('VK_SECRET_KEY'),
+            'key': ''
+        }
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,10 +87,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'orders.urls'
 
+TEMPLATE_DIR = os.path.join(BASE_DIR,"www","html")
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [str(BASE_DIR / 'www/html')],
+        'DIRS': [TEMPLATE_DIR, os.path.join(TEMPLATE_DIR, "allauth")],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,6 +104,8 @@ TEMPLATES = [
         },
     },
 ]
+
+
 
 WSGI_APPLICATION = 'orders.wsgi.application'
 
@@ -95,11 +126,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-# Кастомная модель пользователя
-AUTH_USER_MODEL = 'backend.User'
-
-# Redirect to home URL after login (Default redirects to /accounts/profile/)
-LOGIN_REDIRECT_URL = '/'
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -167,6 +193,8 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 APPEND_SLASH = True
@@ -181,3 +209,39 @@ EMAIL_HOST_USER = "alexdjangoserv@gmail.com"
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Netology homework API',
+    'DESCRIPTION': 'Orders API',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OTHER SETTINGS
+}
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+
+# Redirect to home URL after login (Default redirects to /accounts/profile/)
+LOGIN_REDIRECT_URL = '/'
+
+# Кастомная модель пользователя
+AUTH_USER_MODEL = 'backend.User'
+
+# Allauth список настроек для модуля авторизации
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+# ACCOUNT_EMAIL_CONFIRMATION_REQUIRED = True               # обязательно ли подтверждение через электронную почту
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3                 # срок действия писем с подтверждением по электронной почте (количество дней)
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"                   # при регистрации требуется подтверждение email по почте
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None                   # минимальное число символов при регистрации
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/'
+
